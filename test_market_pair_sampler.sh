@@ -1,1 +1,0 @@
-CUDA_VISIBLE_DEVICES=2,3 python test_trip.py -d market_gen -a resnet50 -b 256 -j 0 --epochs 80 --logs-dir logs/trip_market_test2 --features 512 --data-dir /home/hawkeyenew1/hht/data --margin 5 --trip_weight 0 --num_instances 8 --repeat 100 --sample 1 --dice -1 
