@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0,1 python test_trip.py -d duke_gen -a resnet50 -b 256 -j 0 --epochs 60 --logs-dir logs/trip_duke_test1 --features 512 --data-dir /home/hawkeyenew1/hht/data --margin 2 --trip_weight 0.5

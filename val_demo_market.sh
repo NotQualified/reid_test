@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2,3 python new_soft.py -d market_gen -a resnet50 -b 256 -j 0 --epochs 60 --logs-dir logs/market1501 --features 512 --data-dir /home/hawkeyenew1/hht/data --resume /home/hawkeyenew1/hht/code/logs/market1501/512_base_model_best.pth.tar --evaluate
