@@ -21,7 +21,9 @@ __factory = {
     'market': Market,
     'duke': Duke,
     'market_gen': MarketGen,
-    'duke_gen': DukeGen
+    'market_only_gen': MarketGen,
+    'duke_gen': DukeGen,
+    'duke_only_gen': DukeGen
 }
 
 
