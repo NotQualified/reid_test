@@ -78,6 +78,8 @@ def main(args):
     # Redirect print to both console and log file
     if not args.evaluate:
         sys.stdout = Logger(osp.join(args.logs_dir, 'log.txt'))
+    else:
+        sys.stdout = Logger(osp.join(args.logs_dir, 'evaluate_log.txt'))
 
     # Create data loaders
     if args.height is None or args.width is None:
@@ -99,7 +101,8 @@ def main(args):
     if args.resume:
         checkpoint = load_checkpoint(args.resume)
         model.load_state_dict(checkpoint['state_dict'])
-        start_epoch = checkpoint['epoch']
+        start_epoch = checkpoint['epoch'] if args.keep_epoch == 0 else 0
+        print(start_epoch)
         best_top1 = checkpoint['best_top1']
         print("=> Start epoch {}  best top1 {:.1%}"
               .format(start_epoch, best_top1))
@@ -230,6 +233,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight-decay', type=float, default=5e-4)
     # training configs
     parser.add_argument('--resume', type=str, default='', metavar='PATH')
+    parser.add_argument('--keep_epoch', type=int, default=0)
     parser.add_argument('--evaluate', action='store_true',
                         help="evaluation only")
     parser.add_argument('--epochs', type=int, default=50)
