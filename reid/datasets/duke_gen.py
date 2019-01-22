@@ -40,7 +40,7 @@ class DukeGen(object):
                 group = pattern.search(fname).groups()
                 pid = int(group[0])
                 cam = int(group[1][1:])
-                print(group)
+                #print(group)
             if pid == -1: continue
             if relabel:
                 if pid not in all_pids:
@@ -55,7 +55,7 @@ class DukeGen(object):
 
     def load(self):
         self.train, self.num_train_ids = self.preprocess(self.train_path)
-        print('train images:', len(self.train))
+        #print('train images:', len(self.train))
         self.gallery, self.num_gallery_ids = self.preprocess(self.gallery_path, False)
         self.query, self.num_query_ids = self.preprocess(self.query_path, False)
 
