@@ -16,7 +16,7 @@ class Duke(object):
     def __init__(self, root):
 
         self.images_dir = osp.join(root)
-        print('dir = ', self.images_dir)
+        #print('dir = ', self.images_dir)
 
         self.train_path = 'bounding_box_train'
         self.gallery_path = 'bounding_box_test'
@@ -31,10 +31,10 @@ class Duke(object):
         all_pids = {}
         ret = []
         fpaths = sorted(glob(osp.join(self.images_dir, path, '*.jpg')))
-        print('fpaths:', glob(osp.join(self.images_dir, path, '*.jpg')))
+        #print('fpaths:', glob(osp.join(self.images_dir, path, '*.jpg')))
         for fpath in fpaths:
             fname = osp.basename(fpath)
-            print(fname)
+            #print(fname)
             pid, cam = map(int, pattern.search(fname).groups())
             if pid == -1: continue
             if relabel:
