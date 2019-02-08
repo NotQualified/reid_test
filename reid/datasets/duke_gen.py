@@ -56,8 +56,8 @@ class DukeGen(object):
     def load(self):
         self.train, self.num_train_ids = self.preprocess(self.train_path)
         #print('train images:', len(self.train))
-        self.gallery, self.num_gallery_ids = self.preprocess(self.gallery_path, False)
-        self.query, self.num_query_ids = self.preprocess(self.query_path, False)
+        self.gallery, self.num_gallery_ids = self.preprocess(self.gallery_path, relabel = False)
+        self.query, self.num_query_ids = self.preprocess(self.query_path, relabel = False)
 
         print(self.__class__.__name__, "dataset loaded")
         print("  subset   | # ids | # images")
