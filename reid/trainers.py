@@ -5,6 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 
 from .evaluation_metrics import accuracy

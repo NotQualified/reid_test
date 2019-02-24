@@ -242,13 +242,14 @@ if __name__ == '__main__':
                         help="start saving checkpoints after specific epoch")
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--print-freq', type=int, default=1)
+    #newly added arguments
     parser.add_argument('--margin', type=float, default=2.0)
     parser.add_argument('--trip_weight', type=float, default=0.5)
-    # metric learning
     parser.add_argument('--num_instances', type=int, default=1)
     parser.add_argument('--repeat', type=int, default=80)
     parser.add_argument('--sample', type=int, default=1)
     parser.add_argument('--dice', type=int, default=0)
+    #metric learning
     parser.add_argument('--dist-metric', type=str, default='euclidean',
                         choices=['euclidean', 'kissme'])
     # misc
