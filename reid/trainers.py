@@ -39,7 +39,7 @@ class BaseTrainer(object):
             if isinstance(targets, tuple):
                 targets = torch.cat((targets[0], targets[1]))
 
-            losses.update(loss.data[0], targets.size(0))
+            losses.update(loss.data.item(), targets.size(0))
             precisions.update(prec1, targets.size(0))
 
             optimizer.zero_grad()
@@ -113,12 +113,56 @@ class Trainer(BaseTrainer):
 
 class TripTrainer(BaseTrainer):
 
-    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0):
+    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, record = True):
         BaseTrainer.__init__(self, model, criterion)
         self.margin = margin
         self.trip_weight = trip_weight
         self.sample_strategy = sample_strategy
         self.dice = dice
+        if record:
+            self.writer = SummaryWriter(comment = "Test", log_dir = 'new_log/test') 
+
+    def train(self, epoch, data_loader, optimizer, print_freq=1):
+        self.model.train()
+
+        batch_time = AverageMeter()
+        data_time = AverageMeter()
+        losses = AverageMeter()
+        precisions = AverageMeter()
+
+        end = time.time()
+        for i, inputs in enumerate(data_loader):
+            data_time.update(time.time() - end)
+            #print('len(data_loader):', len(data_loader))
+            #print('inputs.size():', inputs[0].size())
+            inputs, targets = self._parse_data(inputs)
+            loss, prec1 = self._forward(inputs, targets)
+        
+            if isinstance(targets, tuple):
+                targets = torch.cat((targets[0], targets[1]))
+            if isinstance(loss, tuple):
+                class_loss, trip_loss = loss
+                loss = class_loss + self.trip_weight * trip_loss
+
+            losses.update(loss.data.item(), targets.size(0))
+            precisions.update(prec1, targets.size(0))
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            batch_time.update(time.time() - end)
+            end = time.time()
+            if (i + 1) % print_freq == 0:
+                self.writer.add_scalars('Train', {'trip_loss': trip_loss.item(), 'class_loss': class_loss.item(), 'total_loss': loss.item()}, epoch * len(data_loader) + i)
+                print('Epoch: [{}][{}/{}]\t'
+                    'Time {:.3f} ({:.3f})\t'
+                    'Data {:.3f} ({:.3f})\t'
+                    'Loss {:.3f} ({:.3f})\t'
+                    .format(epoch, i + 1, len(data_loader),
+                        batch_time.val, batch_time.avg,
+                        data_time.val, data_time.avg,
+                        losses.val, losses.avg))
 
     def _parse_data(self, inputs):
         imgs, fnames, pids, _ = inputs
@@ -225,7 +269,7 @@ class TripTrainer(BaseTrainer):
         """
         trip_loss = self._triplet(anchors, positives, negatives, self.margin)
         print('trip_loss:', trip_loss)
-        return class_loss + self.trip_weight * trip_loss, prec
+        return (class_loss, trip_loss), prec
     
     def _isgen(self, fname):
         fname = fname.replace("jpg", "")
