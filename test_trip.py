@@ -21,6 +21,7 @@ from reid.utils.logging import Logger
 from reid.utils.serialization import load_checkpoint, save_checkpoint
 
 
+#test from hhtry new1
 def get_data(name, split_id, data_dir, height, width, batch_size, workers,
              combine_trainval, num_instances, repeat_times):
     root = osp.join(data_dir, name)
