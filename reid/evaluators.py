@@ -67,7 +67,7 @@ def pairwise_distance(query_features, gallery_features, query=None, gallery=None
 def evaluate_all(distmat, query=None, gallery=None,
                  query_ids=None, gallery_ids=None,
                  query_cams=None, gallery_cams=None,
-                 cmc_topk=(1, 5, 10)):
+                 cmc_topk=(1, 5, 10), record_inf=None):
     if query is not None and gallery is not None:
         query_ids = [pid for _, pid, _ in query]
         gallery_ids = [pid for _, pid, _ in gallery]
@@ -79,7 +79,7 @@ def evaluate_all(distmat, query=None, gallery=None,
 
     # Compute mean AP
     mAP = mean_ap(distmat, query_ids, gallery_ids, query_cams, gallery_cams)
-    print('Mean AP: {:4.1%}'.format(mAP))
+	print('Mean AP: {:4.1%}'.format(mAP))
 
     # Compute all kinds of CMC scores
     cmc_configs = {
@@ -104,19 +104,30 @@ def evaluate_all(distmat, query=None, gallery=None,
                       cmc_scores['cuhk03'][k - 1],
                       cmc_scores['market1501'][k - 1]))
 
+					  
+	if record_inf is not None and self.writer:
+		epoch, length = record_inf
+		writer.add_scalars('Evaluate',
+						{'mAP': mAP,
+						'top-1': cmc_scores['allshots'][0],
+						'top-5': cmc_scores['allshots'][4]
+						'top-10': cmc_scores['allshots'][9]},
+						epoch * length)
     # Use the allshots cmc top-1 score for validation criterion
     return cmc_scores['allshots'][0]
 
 
 class Evaluator(object):
-    def __init__(self, model):
+    def __init__(self, model, writer = False):
         super(Evaluator, self).__init__()
         self.model = model
+		if writer:
+			self.writer = writer
 
-    def evaluate(self, query_loader, gallery_loader, query, gallery):
+    def evaluate(self, query_loader, gallery_loader, query, gallery, record=None):
         print('extracting query features\n')
         query_features, _ = extract_features(self.model, query_loader)
         print('extracting gallery features\n')
         gallery_features, _ = extract_features(self.model, gallery_loader)
         distmat = pairwise_distance(query_features, gallery_features, query, gallery)
-        return evaluate_all(distmat, query=query, gallery=gallery)
+        return evaluate_all(distmat, query=query, gallery=gallery, record_inf=record)

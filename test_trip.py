@@ -8,6 +8,7 @@ import torch
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 
 from reid import datasets
 from reid import models
@@ -73,7 +74,11 @@ def get_data(name, split_id, data_dir, height, width, batch_size, workers,
 def main(args):
 
     feature_save = True
-
+	if args.record_dir:
+		writer = SummaryWriter(comment = "New Test", log_dir = record_dir)
+	else:
+		writer = False
+		
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     cudnn.benchmark = True
@@ -116,7 +121,7 @@ def main(args):
 
     # Evaluator
     # print('Evaluator')
-    evaluator = Evaluator(model)
+    evaluator = Evaluator(model, writer)
     if args.evaluate:
         #metric.train(model, train_loader)
         #print("Validation:")
@@ -147,7 +152,10 @@ def main(args):
 
     # Trainer
     # print('Trainer')
-    trainer = TripTrainer(model, criterion, margin = args.margin, trip_weight = args.trip_weight, sample_strategy = args.sample, dice = args.dice)
+    trainer = TripTrainer(model, criterion, margin = args.margin, 
+						trip_weight = args.trip_weight, 
+						sample_strategy = args.sample, 
+						dice = args.dice, record = writer)
 
     # Schedule learning rate
     print('Schedule learning rate')
@@ -178,7 +186,9 @@ def main(args):
         
         if epoch < args.start_save:
             continue
-        top1 = evaluator.evaluate(query_loader, gallery_loader, dataset.query, dataset.gallery)
+        top1 = evaluator.evaluate(query_loader, gallery_loader, 
+								dataset.query, dataset.gallery, 
+								(epoch + 1, len(train_loader)))
 
         is_best = top1 > best_top1
         best_top1 = max(top1, best_top1)
@@ -259,4 +269,6 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'data'))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
+	parser.add_argument('--record-dir', type=str, metavar='PATH',
+						default=osp.join(working_dir, 'new1_log'))
     main(parser.parse_args())

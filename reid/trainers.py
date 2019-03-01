@@ -113,14 +113,14 @@ class Trainer(BaseTrainer):
 
 class TripTrainer(BaseTrainer):
 
-    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, record = True):
+    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, writer = False):
         BaseTrainer.__init__(self, model, criterion)
         self.margin = margin
         self.trip_weight = trip_weight
         self.sample_strategy = sample_strategy
         self.dice = dice
-        if record:
-            self.writer = SummaryWriter(comment = "Test", log_dir = 'new_log/test') 
+        if writer:
+            self.writer = writer
 
     def train(self, epoch, data_loader, optimizer, print_freq=1):
         self.model.train()
@@ -154,7 +154,12 @@ class TripTrainer(BaseTrainer):
             batch_time.update(time.time() - end)
             end = time.time()
             if (i + 1) % print_freq == 0:
-                self.writer.add_scalars('Train', {'trip_loss': trip_loss.item(), 'class_loss': class_loss.item(), 'total_loss': loss.item()}, epoch * len(data_loader) + i)
+                if self.writer:
+					self.writer.add_scalars('Train', 
+											{'trip_loss': trip_loss.item(), 
+											'class_loss': class_loss.item(), 
+											'total_loss': loss.item()}, 
+											epoch * len(data_loader) + i)
                 print('Epoch: [{}][{}/{}]\t'
                     'Time {:.3f} ({:.3f})\t'
                     'Data {:.3f} ({:.3f})\t'
