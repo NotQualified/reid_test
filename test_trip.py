@@ -74,11 +74,12 @@ def get_data(name, split_id, data_dir, height, width, batch_size, workers,
 def main(args):
 
     feature_save = True
-	if args.record_dir:
-		writer = SummaryWriter(comment = "New Test", log_dir = record_dir)
-	else:
-		writer = False
-		
+    if args.record_dir:
+        writer = SummaryWriter(comment = "New Test", log_dir = args.record_dir)
+    else:
+        writer = False
+
+
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     cudnn.benchmark = True
@@ -155,7 +156,7 @@ def main(args):
     trainer = TripTrainer(model, criterion, margin = args.margin, 
 						trip_weight = args.trip_weight, 
 						sample_strategy = args.sample, 
-						dice = args.dice, record = writer)
+						dice = args.dice, writer = writer)
 
     # Schedule learning rate
     print('Schedule learning rate')
@@ -269,6 +270,6 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'data'))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
-	parser.add_argument('--record-dir', type=str, metavar='PATH',
+    parser.add_argument('--record-dir', type=str, metavar='PATH',
 						default=osp.join(working_dir, 'new1_log'))
     main(parser.parse_args())

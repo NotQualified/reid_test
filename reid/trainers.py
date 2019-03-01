@@ -155,7 +155,7 @@ class TripTrainer(BaseTrainer):
             end = time.time()
             if (i + 1) % print_freq == 0:
                 if self.writer:
-					self.writer.add_scalars('Train', 
+                    self.writer.add_scalars('Train', 
 											{'trip_loss': trip_loss.item(), 
 											'class_loss': class_loss.item(), 
 											'total_loss': loss.item()}, 
