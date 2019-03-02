@@ -1,6 +1,6 @@
 from __future__ import print_function, absolute_import
 import time
-
+import re
 import numpy as np
 import torch
 import torch.nn as nn
@@ -193,8 +193,12 @@ class TripTrainer(BaseTrainer):
         positives = []
         negatives = []
         test = []
+        camera_check = self._same_camera_check(fnames)
         for i in range(batch_size // (num_instances * 2)): 
             for j in range(num_instances):
+                if not camera_check[i * num_instances * 2 + j]:
+                    #print(i * num_instances * 2 + j, i * num_instances * 2 + num_instances + j)
+                    continue
                 t = []
                 #totally random
                 if self.dice == 0:
@@ -248,6 +252,7 @@ class TripTrainer(BaseTrainer):
                             t.append(i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 + num_instances - batch_size)
                 test.append(t)
         #print(pids)
+        #print(fnames)
         #print(test)
         
         anchor = torch.Tensor().cuda()
@@ -279,6 +284,7 @@ class TripTrainer(BaseTrainer):
     def _isgen(self, fname):
         fname = fname.replace("jpg", "")
         return 'g' in fname 
+    
 
     #reference: siamese-triplet
     
@@ -288,6 +294,28 @@ class TripTrainer(BaseTrainer):
         #print(distance_positive - distance_negative)
         losses = F.relu(distance_positive - distance_negative + margin)
         return losses.mean()
+
+    def _same_camera_check(self, fnames):
+        batch_size = len(fnames)
+        for i, name in enumerate(fnames[1: ]):
+            if self._isgen(fnames[0]) != self._isgen(name):
+                num_instances = i + 1
+                break
+        ret = [True for _ in range(batch_size)]
+        pattern1 = re.compile('c[g]?\d+s')
+        pattern2 = re.compile('\d+')
+        factor = num_instances * 2
+        for i in range(batch_size // factor):
+            indexes = [j for j in range(i * factor, i * factor + num_instances)]
+            for index, name1, name2 in zip(indexes, fnames[i * factor: i * factor + num_instances], fnames[i * factor + num_instances: (i + 1) * factor]):
+                temp1 = pattern1.findall(name1)[0]
+                cam1 = int(pattern2.findall(temp1)[0])
+                temp2 = pattern1.findall(name2)[0]
+                cam2 = int(pattern2.findall(temp2)[0])
+                #print(temp1, temp2, name1, name2, cam1, cam2)
+                ret[index], ret[index + num_instances] = (True, True) if cam1 != cam2 else (False, False)
+        #print(ret)
+        return ret
 """
     def _triplet(self, anchors, positives, negatives, margin):
         #supposed input size: (N, H) 
