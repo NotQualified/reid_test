@@ -113,12 +113,13 @@ class Trainer(BaseTrainer):
 
 class TripTrainer(BaseTrainer):
 
-    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, writer = False):
+    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, writer = False, same_camera_check = False):
         BaseTrainer.__init__(self, model, criterion)
         self.margin = margin
         self.trip_weight = trip_weight
         self.sample_strategy = sample_strategy
         self.dice = dice
+        self.same_cam_check = same_camera_check
         if writer:
             self.writer = writer
 
@@ -196,7 +197,7 @@ class TripTrainer(BaseTrainer):
         camera_check = self._same_camera_check(fnames)
         for i in range(batch_size // (num_instances * 2)): 
             for j in range(num_instances):
-                if not camera_check[i * num_instances * 2 + j]:
+                if self.same_cam_check and not camera_check[i * num_instances * 2 + j]:
                     #print(i * num_instances * 2 + j, i * num_instances * 2 + num_instances + j)
                     continue
                 t = []
@@ -254,17 +255,18 @@ class TripTrainer(BaseTrainer):
         #print(pids)
         #print(fnames)
         #print(test)
-        
+        #print(len(anchors), len(negatives))
         anchor = torch.Tensor().cuda()
         positive = torch.Tensor().cuda()
         negative = torch.Tensor().cuda()
-        for i in range(batch_size // (num_instances * 2)):
+        for i in range(len(anchors)):
             anchor = torch.cat((anchor, torch.unsqueeze(anchors[i], 0)), dim = 0)
             positive = torch.cat((positive, torch.unsqueeze(positives[i], 0)), dim = 0)
             negative = torch.cat((negative, torch.unsqueeze(negatives[i], 0)), dim = 0)
         anchors = anchor
         positives = positive
         negatives = negative
+        #print(anchor.size(), negative.size())
         
         #positives = torch.cat(positives, dim = 0)
         #negatives = torch.cat(negatives, dim = 0)
@@ -278,7 +280,6 @@ class TripTrainer(BaseTrainer):
             print('trip_loss:', trip_loss)
         """
         trip_loss = self._triplet(anchors, positives, negatives, self.margin)
-        print('trip_loss:', trip_loss)
         return (class_loss, trip_loss), prec
     
     def _isgen(self, fname):
