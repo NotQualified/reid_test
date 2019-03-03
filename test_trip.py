@@ -21,8 +21,6 @@ from reid.utils.data.preprocessor import Preprocessor
 from reid.utils.logging import Logger
 from reid.utils.serialization import load_checkpoint, save_checkpoint
 
-
-#test from hhtry new1
 def get_data(name, split_id, data_dir, height, width, batch_size, workers,
              combine_trainval, num_instances, repeat_times):
     root = osp.join(data_dir, name)
@@ -156,7 +154,8 @@ def main(args):
     trainer = TripTrainer(model, criterion, margin = args.margin, 
 						trip_weight = args.trip_weight, 
 						sample_strategy = args.sample, 
-						dice = args.dice, writer = writer)
+						dice = args.dice, writer = writer,
+                        same_camera_check = args.same_cam_check)
 
     # Schedule learning rate
     print('Schedule learning rate')
@@ -271,5 +270,6 @@ if __name__ == '__main__':
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
     parser.add_argument('--record-dir', type=str, metavar='PATH',
-						default=osp.join(working_dir, 'new1_log'))
+						default='')
+    parser.add_argument('--same_cam_check', type=str, default='', metavar='PATH')
     main(parser.parse_args())
