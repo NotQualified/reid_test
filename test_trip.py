@@ -271,5 +271,5 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'logs'))
     parser.add_argument('--record-dir', type=str, metavar='PATH',
 						default='')
-    parser.add_argument('--same_cam_check', type=str, default='', metavar='PATH')
+    parser.add_argument('--same-cam-check', type=bool, default=False)
     main(parser.parse_args())

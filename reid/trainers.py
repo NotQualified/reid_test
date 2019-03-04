@@ -113,15 +113,14 @@ class Trainer(BaseTrainer):
 
 class TripTrainer(BaseTrainer):
 
-    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, writer = False, same_camera_check = False):
+    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, writer = None, same_camera_check = False):
         BaseTrainer.__init__(self, model, criterion)
         self.margin = margin
         self.trip_weight = trip_weight
         self.sample_strategy = sample_strategy
         self.dice = dice
         self.same_cam_check = same_camera_check
-        if writer:
-            self.writer = writer
+        self.writer = writer
 
     def train(self, epoch, data_loader, optimizer, print_freq=1):
         self.model.train()
