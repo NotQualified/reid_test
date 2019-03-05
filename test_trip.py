@@ -99,6 +99,7 @@ def main(args):
     # Create model
     print('args.margin ', args.margin)
     print('args.trip_weight', args.trip_weight)
+    print('args.class_weight', args.class_weight)
     print('before creation')
     model = models.create(args.arch, num_features=args.features,
                           dropout=args.dropout, num_classes=num_classes,feat_save=feature_save)
@@ -153,7 +154,8 @@ def main(args):
     # print('Trainer')
     print('same_cam_check:', args.same_cam_check)
     trainer = TripTrainer(model, criterion, margin = args.margin, 
-						trip_weight = args.trip_weight, 
+						class_weight = args.class_weight,
+                        trip_weight = args.trip_weight, 
 						sample_strategy = args.sample, 
 						dice = args.dice, writer = writer,
                         same_camera_check = args.same_cam_check)
@@ -257,6 +259,7 @@ if __name__ == '__main__':
     #newly added arguments
     parser.add_argument('--margin', type=float, default=2.0)
     parser.add_argument('--trip_weight', type=float, default=0.5)
+    parser.add_argument('--class_weight', type=float, default=1.0)
     parser.add_argument('--num_instances', type=int, default=1)
     parser.add_argument('--repeat', type=int, default=80)
     parser.add_argument('--sample', type=int, default=1)

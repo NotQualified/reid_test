@@ -113,9 +113,10 @@ class Trainer(BaseTrainer):
 
 class TripTrainer(BaseTrainer):
 
-    def __init__(self, model, criterion, margin = 2, trip_weight = 1, sample_strategy = -1, dice = 0, writer = None, same_camera_check = False):
+    def __init__(self, model, criterion, margin = 2, class_weight = 1, trip_weight = 1, sample_strategy = -1, dice = 0, writer = None, same_camera_check = False):
         BaseTrainer.__init__(self, model, criterion)
         self.margin = margin
+        self.class_weight = class_weight
         self.trip_weight = trip_weight
         self.sample_strategy = sample_strategy
         self.dice = dice
@@ -142,7 +143,7 @@ class TripTrainer(BaseTrainer):
                 targets = torch.cat((targets[0], targets[1]))
             if isinstance(loss, tuple):
                 class_loss, trip_loss = loss
-                loss = class_loss + self.trip_weight * trip_loss
+                loss = self.class_weight * class_loss + self.trip_weight * trip_loss
 
             losses.update(loss.data.item(), targets.size(0))
             precisions.update(prec1, targets.size(0))
