@@ -151,6 +151,7 @@ def main(args):
 
     # Trainer
     # print('Trainer')
+    print('same_cam_check:', args.same_cam_check)
     trainer = TripTrainer(model, criterion, margin = args.margin, 
 						trip_weight = args.trip_weight, 
 						sample_strategy = args.sample, 
@@ -271,5 +272,5 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'logs'))
     parser.add_argument('--record-dir', type=str, metavar='PATH',
 						default='')
-    parser.add_argument('--same-cam-check', type=bool, default=False)
+    parser.add_argument('--same_cam_check', type=bool, default=False)
     main(parser.parse_args())

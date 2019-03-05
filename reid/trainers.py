@@ -194,10 +194,15 @@ class TripTrainer(BaseTrainer):
         negatives = []
         test = []
         camera_check = self._same_camera_check(fnames)
-        for i in range(batch_size // (num_instances * 2)): 
+        si = num_instances
+        bi = num_instances * 2
+        for i in range(batch_size // (num_instances * 2)):
+            sft = bi * i
+            nsft = bi * i + si
             for j in range(num_instances):
-                if self.same_cam_check and not camera_check[i * num_instances * 2 + j]:
-                    #print(i * num_instances * 2 + j, i * num_instances * 2 + num_instances + j)
+                if self.same_cam_check and not camera_check[sft + j]:
+                    #exclude same camera case
+                    print(self.same_cam_check)
                     continue
                 t = []
                 #totally random
@@ -205,51 +210,34 @@ class TripTrainer(BaseTrainer):
                     dice = torch.randn(1).item()
                 else:
                     dice = self.dice
-                #dice = -1
                 rand_seed = 1
+                rsft = bi * rand_seed
                 if dice >= 0:
-                    anchors.append(feat[i * num_instances * 2 + j])
-                    t.append(i * num_instances * 2 + j)
-                    positives.append(feat[i * num_instances * 2 + num_instances + j])
-                    t.append(i * num_instances * 2 + num_instances + j)
+                    anchors.append(feat[sft + j])
+                    t.append(sft + j)
+                    positives.append(feat[nsft + j])
+                    t.append(nsft + j)
                     if self.sample_strategy == 1:
                         #anchor: real positive: gen, negative: real
-                        try:
-                            negatives.append(feat[i * num_instances * 2 + j + rand_seed * num_instances * 2])
-                            t.append(i * num_instances * 2 + j + rand_seed * num_instances * 2)
-                        except BaseException:
-                            negatives.append(feat[i * num_instances * 2 + j + rand_seed * num_instances * 2 - batch_size])
-                            t.append(i * num_instances * 2 + j + rand_seed * num_instances * 2 - batch_size)
+                        neg_index = sft + j + rsft if sft + j + rsft < batch_size else sft + j + rsft - batch_size
                     else:
                         #anchor: real positive: gen, negative: gen
-                        try:
-                            negatives.append(feat[i * num_instances * 2 + j + rand_seed * num_instances * 2 + num_instances])
-                            t.append(i * num_instances * 2 + j + rand_seed * num_instances * 2 + num_instances)
-                        except BaseException:
-                            negatives.append(feat[i * num_instances * 2 + j + rand_seed * num_instances * 2 + num_instances - batch_size])
-                            t.append(i * num_instances * 2 + j + rand_seed * num_instances * 2 + num_instances - batch_size)
-                    
+                        neg_index = sft + j + rsft + si if sft + j + rsft + si < batch_size else sft + j + rsft + si - batch_size      
+                    neg_appendence = feat[neg_index]
                 else:
-                    anchors.append(feat[i * num_instances * 2 + num_instances + j])
-                    t.append(i * num_instances * 2 + num_instances + j)
-                    positives.append(feat[i * num_instances * 2 + j])
-                    t.append(i * num_instances * 2 + j)
+                    anchors.append(feat[nsft + j])
+                    t.append(nsft + j)
+                    positives.append(feat[sft + j])
+                    t.append(sft + j)
                     if self.sample_strategy == 1:
                         #anchor: gen positive: real, negative: gen
-                        try:
-                            negatives.append(feat[i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2])
-                            t.append(i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2)
-                        except BaseException:
-                            negatives.append(feat[i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 - batch_size])
-                            t.append(i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 - batch_size)
+                        neg_index = nsft + j + rsft if nsft + j + rsft < batch_size else nsft + j + rsft - batch_size
                     else:
                         #anchor: gen positive: real, negative: real
-                        try:
-                            negatives.append(feat[i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 + num_instances])
-                            t.append(i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 + num_instances)
-                        except BaseException:
-                            negatives.append(feat[i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 + num_instances - batch_size])
-                            t.append(i * num_instances * 2 + num_instances + j + rand_seed * num_instances * 2 + num_instances - batch_size)
+                        neg_index = nsft + j + rsft + si if nsft + j + rsft + si < batch_size else nsft + j + rsft + si - batch_size
+                    neg_appendence = feat[neg_index]
+                t.append(neg_index)
+                negatives.append(neg_appendence)
                 test.append(t)
         #print(pids)
         #print(fnames)
