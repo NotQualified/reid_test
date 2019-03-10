@@ -8,20 +8,22 @@ import torch
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 
 from reid import datasets
 from reid import models
 from reid.dist_metric import DistanceMetric
-from reid.trainers import Trainer, TwinTrainer
+from reid.trainers import MixedTrainer
 from reid.evaluators import Evaluator
+from reid.loss import MixedLoss
 from reid.utils.data import transforms as T
+from reid.utils.data.sampler import RandomTripPairSampler
 from reid.utils.data.preprocessor import Preprocessor
 from reid.utils.logging import Logger
 from reid.utils.serialization import load_checkpoint, save_checkpoint
 
-
 def get_data(name, split_id, data_dir, height, width, batch_size, workers,
-             combine_trainval):
+             combine_trainval, num_instances, repeat_times):
     root = osp.join(data_dir, name)
 
     dataset = datasets.create(name, root)
@@ -50,7 +52,8 @@ def get_data(name, split_id, data_dir, height, width, batch_size, workers,
         Preprocessor(dataset.train, root=osp.join(dataset.images_dir,dataset.train_path),
                      transform=train_transformer),
         batch_size=batch_size, num_workers=workers,
-        shuffle=True, pin_memory=True, drop_last=True)
+        sampler = RandomTripPairSampler(dataset.train, num_instances = num_instances, repeat_times = repeat_times),
+        pin_memory=True, drop_last=True)
 
     query_loader = DataLoader(
         Preprocessor(dataset.query, root=osp.join(dataset.images_dir,dataset.query_path),
@@ -68,6 +71,14 @@ def get_data(name, split_id, data_dir, height, width, batch_size, workers,
 
 
 def main(args):
+
+    feature_save = True
+    if args.record_dir:
+        writer = SummaryWriter(comment = "New Test", log_dir = args.record_dir)
+    else:
+        writer = False
+
+
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     cudnn.benchmark = True
@@ -83,12 +94,16 @@ def main(args):
     dataset, num_classes, train_loader, query_loader, gallery_loader = \
         get_data(args.dataset, args.split, args.data_dir, args.height,
                  args.width, args.batch_size, args.workers,
-                 args.combine_trainval)
+                 args.combine_trainval, num_instances = args.num_instances,
+                 repeat_times = args.repeat)
 
     # Create model
+    print('args.margin ', args.margin)
+    print('args.trip_weight', args.trip_weight)
+    print('args.class_weight', args.class_weight)
     print('before creation')
     model = models.create(args.arch, num_features=args.features,
-                          dropout=args.dropout, num_classes=num_classes, feat_save = True, norm = False)
+                          dropout=args.dropout, num_classes=num_classes,feat_save=feature_save)
     print('after creation')
 
     # Load from checkpoint
@@ -107,7 +122,7 @@ def main(args):
 
     # Evaluator
     # print('Evaluator')
-    evaluator = Evaluator(model)
+    evaluator = Evaluator(model, writer)
     if args.evaluate:
         #metric.train(model, train_loader)
         #print("Validation:")
@@ -118,7 +133,10 @@ def main(args):
 
     # Criterion
     # print('Criterion')
-    criterion = nn.CrossEntropyLoss().cuda()
+    criterion = MixedLoss(margin = args.margin,
+                        class_weight = args.class_weight,
+                        trip_weight = args.trip_weight,
+                        num_instances = args.num_instances)
 
     # Optimizer
     # print('Optimizer')
@@ -131,21 +149,38 @@ def main(args):
             {'params': new_params, 'lr_mult': 1.0}]
     else:
         param_groups = model.parameters()
+    
+    #replaced by Adam for triplet
+    """
     optimizer = torch.optim.SGD(param_groups, lr=args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay,
                                 nesterov=True)
+    """
+
+    #triplet optimizer try
+    optimizer = torch.optim.Adam(model.parameters(), lr = args.lr, 
+                                weight_decay = args.weight_decay)
+    
 
     # Trainer
     # print('Trainer')
-    trainer = TwinTrainer(model, criterion)
+    trainer = MixedTrainer(model, criterion)
 
     # Schedule learning rate
+   
+    """
     print('Schedule learning rate')
     def adjust_lr(epoch):
-        #modified
-        step_size = 60 if args.arch == 'inception' else 60
+        step_size = 60 if args.arch == 'inception' else 40
         lr = args.lr * (0.1 ** (epoch // step_size))
+        for g in optimizer.param_groups:
+            g['lr'] = lr * g.get('lr_mult', 1)
+    """
+    
+    def adjust_lr(epoch):
+        lr = args.lr * (0.001 ** ((epoch - 100) / 50.0)) \
+            if epoch > 100 else args.lr
         for g in optimizer.param_groups:
             g['lr'] = lr * g.get('lr_mult', 1)
 
@@ -170,7 +205,9 @@ def main(args):
         
         if epoch < args.start_save:
             continue
-        top1 = evaluator.evaluate(query_loader, gallery_loader, dataset.query, dataset.gallery)
+        top1 = evaluator.evaluate(query_loader, gallery_loader, 
+								dataset.query, dataset.gallery, 
+								(epoch + 1, len(train_loader)))
 
         is_best = top1 > best_top1
         best_top1 = max(top1, best_top1)
@@ -221,9 +258,8 @@ if __name__ == '__main__':
     parser.add_argument('--features', type=int, default=128)
     parser.add_argument('--dropout', type=float, default=0.5)
     # optimizer
-    parser.add_argument('--lr', type=float, default=0.1,
-                        help="learning rate of new parameters, for pretrained "
-                             "parameters it is 10 times smaller than this")
+    parser.add_argument('--lr', type=float, default=0.0002,
+                        help="learning rate of all parameters")
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight-decay', type=float, default=5e-4)
     # training configs
@@ -235,7 +271,14 @@ if __name__ == '__main__':
                         help="start saving checkpoints after specific epoch")
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--print-freq', type=int, default=1)
-    # metric learning
+    #newly added arguments
+    parser.add_argument('--margin', type=float, default=2.0)
+    parser.add_argument('--trip_weight', type=float, default=0.5)
+    parser.add_argument('--class_weight', type=float, default=1.0)
+    parser.add_argument('--num_instances', type=int, default=1)
+    parser.add_argument('--repeat', type=int, default=1)
+    parser.add_argument('--sample', type=int, default=1)
+    #metric learning
     parser.add_argument('--dist-metric', type=str, default='euclidean',
                         choices=['euclidean', 'kissme'])
     # misc
@@ -244,4 +287,7 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'data'))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
+    parser.add_argument('--record-dir', type=str, metavar='PATH',
+						default='')
     main(parser.parse_args())
+

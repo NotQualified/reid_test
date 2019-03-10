@@ -34,6 +34,42 @@ class RandomIdentitySampler(Sampler):
             ret.extend(t)
         return iter(ret)
 
+class RandomTripPairSampler(Sampler):
+    def __init__(self, data_source, num_instances = 1, repeat_times = 1):
+        self.data_source = data_source
+        self.num_instances = num_instances
+        self.repeat_times = repeat_times
+        self.rindex_dic = defaultdict(list)
+        self.gindex_dic = defaultdict(list)
+        for index, (fname, pid, _) in enumerate(data_source):
+            if "cg" in fname:
+                self.gindex_dic[pid].append(index)
+            else:
+                self.rindex_dic[pid].append(index)
+        self.pids = list(self.rindex_dic.keys())
+        self.num_samples = len(self.pids)
+
+    def __len__(self):
+        #可能取不完..
+        return self.num_samples * self.num_instances * self.repeat_times * 2
+    
+    def __iter__(self):
+        ret = []
+        for _ in range(self.repeat_times):
+            rdquery = torch.randperm(self.num_samples).numpy()
+            for pid in rdquery:
+                rt = self.rindex_dic[pid]
+                gt = self.gindex_dic[pid]
+                if self.num_instances <= len(rt):
+                    rt = np.random.choice(rt, size = self.num_instances, replace = False)
+                    gt = np.random.choice(gt, size = self.num_instances, replace = False)
+                else:
+                    rt = np.random.choice(rt, size = self.num_instances, replace = True)
+                    gt = np.random.choice(gt, size = self.num_instances, replace = True)
+                ret.extend(rt)
+                ret.extend(gt)
+        return iter(ret)
+
 
 class RandomNonPairSampler(Sampler):
     
@@ -78,6 +114,7 @@ class RandomNonPairSampler(Sampler):
                 ret.extend(gt)
         return iter(ret)
 	    
+
 
 #added by hht
 class RandomTwinSampler(Sampler):

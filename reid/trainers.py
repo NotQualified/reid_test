@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 from torch.autograd import Variable
 
 from .evaluation_metrics import accuracy
-from .loss import OIMLoss, TripletLoss
+from .loss import OIMLoss, TripletLoss, MixedLoss
 from .utils.meters import AverageMeter
 
 
@@ -305,7 +305,7 @@ class TripTrainer(BaseTrainer):
                 ret[index], ret[index + num_instances] = (True, True) if cam1 != cam2 else (False, False)
         #print(ret)
         return ret
-"""
+    
     def _triplet(self, anchors, positives, negatives, margin):
         #supposed input size: (N, H) 
         criterion = torch.nn.MSELoss()
@@ -325,69 +325,48 @@ class TripTrainer(BaseTrainer):
         if loss > 0:
             print('trip loss:', loss)
         return loss
-"""
 
-#added by hht 
-#expect input batch of [(img1, fname1, pid, cam), (img2, fname2, pid, cam)]
+class MixedTrainer(BaseTrainer):
+    def __init__(self, model, criterion):
+        self.model = model
+        self.criterion = criterion
 
-class TwinTrainer(BaseTrainer):
-    
-    
     def _parse_data(self, inputs):
-        real, gen = inputs
-        real_imgs, _, real_pids, _ = real
-        gen_imgs, _, gen_pids, _ = gen
-        self.pids = real_pids
-        #print('real_pids:', real_pids)
-        real_inputs = [Variable(real_imgs)]
-        real_targets = Variable(real_pids.cuda())
-        gen_inputs = [Variable(gen_imgs)]
-        gen_targets = Variable(gen_pids.cuda())
-        return (real_inputs, gen_inputs), (real_targets, gen_targets)
-
+        imgs, fnames, pids, _ = inputs
+        inputs = [Variable(imgs)]
+        targets = Variable(pids.cuda())
+        return inputs, targets
+    
     def _forward(self, inputs, targets):
-        real_inputs, gen_inputs = inputs
-        real_targets, gen_targets = targets
-        real_outputs, real_feat = self.model(*real_inputs)
-        gen_outputs, gen_feat = self.model(*gen_inputs)
-        #print('gen_feat:', gen_feat.size())
-        """
-        loss: criterion loss + triplet
-        """
-        #criterion
-        batch_size = gen_feat.size()[0]
-        new_index = []
-        for i in range(0, batch_size):
-            while True:
-                rand_index = np.random.randint(batch_size)
-                if(self.pids[i] != self.pids[rand_index]):
-                    new_index.append(rand_index)
-                    break
+        if not isinstance(self.criterion, MixedLoss):
+            raise NameError
+        return self.criterion(self.model(*inputs), targets)
 
-        neg_feat = real_feat[rand_index]
-        
-        trip_loss = self.triplet(real_feat, gen_feat, neg_feat, 3)
+    def train(self, epoch, data_loader, optimizer, print_freq=1):
+        self.model.train()
 
-        comb_outputs = torch.cat((real_outputs, gen_outputs))
-        comb_targets = torch.cat((real_targets, gen_targets))
-        entropy_criterion = torch.nn.CrossEntropyLoss()
-        entropy_loss = entropy_criterion(comb_outputs, comb_targets)
-        entropy_prec, = accuracy(comb_outputs.data, comb_targets.data)
-        #print('entropy_loss:', entropy_loss)
-        #print('size:', entropy_loss.size())
-        return entropy_loss + 0.5 * trip_loss, entropy_prec
+        batch_time = AverageMeter()
+        data_time = AverageMeter()
+        losses = AverageMeter()
+        end = time.time()
 
-        
-    def triplet(self, anchors, positives, negatives, margin):
-        criterion  = torch.nn.MSELoss()
-        batch_size = anchors.size()[0]
-        loss = 0
-        for i in range(0, batch_size):
-            anchor, positive, negative = anchors[i], positives[i], negatives[i]
-            #print(criterion(anchor, positive) - criterion(anchor, negative))
-            loss += (criterion(anchor, positive) - criterion(anchor, negative)) / batch_size
-        loss += margin
-        loss = loss if loss > 0 else 0
-        if loss > 0:
-            print('trip loss:', loss)
-        return loss
+        for i, inputs in enumerate(data_loader):
+            data_time.update(time.time() - end)
+            #print('len(data_loader):', len(data_loader))
+            inputs, targets = self._parse_data(inputs)
+            loss = self._forward(inputs, targets)
+            losses.update(loss.data.item(), targets.size(0))
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            batch_time.update(time.time() - end)
+            end = time.time()
+            if (i + 1) % print_freq == 0:
+                print('Epoch: [{}][{}/{}]\t'
+                    'Time {:.3f} ({:.3f})\t'
+                    'Data {:.3f} ({:.3f})\t'
+                    'Loss {:.3f} ({:.3f})\t'
+                    .format(epoch, i + 1, len(data_loader),
+                        batch_time.val, batch_time.avg,
+                        data_time.val, data_time.avg,
+                        losses.val, losses.avg))

@@ -16,7 +16,7 @@ from reid.dist_metric import DistanceMetric
 from reid.trainers import Trainer, TripTrainer
 from reid.evaluators import Evaluator
 from reid.utils.data import transforms as T
-from reid.utils.data.sampler import RandomIdentitySampler, RandomNonPairSampler
+from reid.utils.data.sampler import RandomIdentitySampler, RandomNonPairSampler, RandomTripPairSampler
 from reid.utils.data.preprocessor import Preprocessor
 from reid.utils.logging import Logger
 from reid.utils.serialization import load_checkpoint, save_checkpoint

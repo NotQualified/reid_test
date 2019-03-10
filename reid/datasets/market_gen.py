@@ -54,44 +54,6 @@ class MarketGen(object):
             ret.append((fname, pid, cam))
         return ret, int(len(all_pids))
 
-    # added by hht in order to generate paired iterable list which elements is [(fname, pid, cam), (fgname, pid, cam)]
-    def twin_preprocess(self, path, relabel=True):
-        pattern = re.compile(r'([-\d]+)_c([g]?\d)')
-        all_pids = {}
-        twin_dict = defaultdict(list)
-        ret = []
-        fpaths = sorted(glob(osp.join(self.images_dir, path, '*.jpg')))
-        #print('fpaths:', glob(osp.join(self.images_dir, path, '*.jpg')))
-        for fpath in fpaths:
-            fname = osp.basename(fpath)
-            flag = 0
-            #print(fname)
-            try:
-                pid, cam = map(int, pattern.search(fname).groups())
-            except BaseException:
-                flag = 1
-                group = pattern.search(fname).groups()
-                pid = int(group[0])
-                cam = int(group[1][1:])
-                fname = fname.replace("cg", "c")
-                #print(group)
-            #print((fname, pid, cam))
-            if pid == -1: continue
-            if relabel:
-                if pid not in all_pids:
-                    all_pids[pid] = len(all_pids)
-            else:
-                if pid not in all_pids:
-                    all_pids[pid] = pid
-            pid = all_pids[pid]
-            cam -= 1
-            #ret.append((fname, pid, cam))
-            #print(twin_dict[fname])
-            twin_dict[fname].append((fname, pid, cam))
-        for key in twin_dict.keys():
-            ret.append(twin_dict[key])
-        #print("ret = \n", ret)
-        return ret, int(len(all_pids))
     
     def load(self):
         self.train, self.num_train_ids = self.preprocess(self.train_path)
