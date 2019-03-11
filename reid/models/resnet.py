@@ -20,7 +20,7 @@ class ResNet(nn.Module):
     }
 
     def __init__(self, depth, pretrained=True, cut_at_pooling=False,
-                 num_features=0, norm=False, dropout=0, num_classes=0, feat_save=False):
+                 num_features=0, norm=False, dropout=0, num_classes=0, num_trips=0, feat_save=False):
         print('ResNet init')
         super(ResNet, self).__init__()
 
@@ -28,6 +28,7 @@ class ResNet(nn.Module):
         self.pretrained = pretrained
         self.cut_at_pooling = cut_at_pooling
         self.feat_save = feat_save
+        self.num_trips = num_trips
 
         # Construct base (pretrained) resnet
         if depth not in ResNet.__factory:
@@ -60,6 +61,10 @@ class ResNet(nn.Module):
                 self.classifier = nn.Linear(self.num_features, self.num_classes)
                 init.normal_(self.classifier.weight, std=0.001)
                 init.constant_(self.classifier.bias, 0)
+            if self.num_trips > 0:
+                self.triplet = nn.Linear(self.num_features, self.num_trips)
+                init.normal_(self.triplet.weight, std=0.001)
+                init.constant_(self.triplet.bias, 0)
 
         if not self.pretrained:
             self.reset_params()
@@ -81,19 +86,19 @@ class ResNet(nn.Module):
         if self.has_embedding:
             x = self.feat(x)
             x = self.feat_bn(x)
-        nfeat = x
         feat = F.normalize(x)
         if self.norm:
             x = F.normalize(x)
         elif self.has_embedding:
-	#modified
-            #x = F.relu(x)
             x = F.leaky_relu(x, 0.1)
         if self.dropout > 0:
             x = self.drop(x)
+        if self.num_trips > 0:
+            trip = self.triplet(x)
         if self.num_classes > 0:
             x = self.classifier(x)
-        return x, feat, nfeat if self.feat_save else x
+        #print(self.feat_save)
+        return x, feat, trip if self.feat_save else x
 
     def reset_params(self):
         for m in self.modules():

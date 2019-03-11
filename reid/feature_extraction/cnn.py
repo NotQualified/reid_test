@@ -13,7 +13,8 @@ def extract_cnn_feature(model, inputs, modules=None):
     if modules is None:
         outputs = model(inputs)
         if isinstance(outputs, tuple):
-            outputs = outputs[1]
+            outputs = outputs[2]
+            #print(outputs.size())
         outputs = outputs.data.cpu()
         return outputs
     # Register forward hook for each module

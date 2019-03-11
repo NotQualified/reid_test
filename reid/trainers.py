@@ -93,8 +93,6 @@ class Trainer(BaseTrainer):
 
     def _forward(self, inputs, targets):
         outputs = self.model(*inputs)
-        #print(outputs[0].size())
-        #print(targets.size())
         if isinstance(outputs, tuple):
             outputs = outputs[0]
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
@@ -106,6 +104,9 @@ class Trainer(BaseTrainer):
             prec, = accuracy(outputs.data, targets.data)
             prec = prec[0]
         elif isinstance(self.criterion, TripletLoss):
+            #print('output.size()', outputs.size())
+            #print('target.size()', targets.size())
+            #print(targets)
             loss, prec = self.criterion(outputs, targets)
         else:
             raise ValueError("Unsupported loss:", self.criterion)
@@ -328,8 +329,7 @@ class TripTrainer(BaseTrainer):
 
 class MixedTrainer(BaseTrainer):
     def __init__(self, model, criterion):
-        self.model = model
-        self.criterion = criterion
+        BaseTrainer.__init__(self, model, criterion)
 
     def _parse_data(self, inputs):
         imgs, fnames, pids, _ = inputs
@@ -338,9 +338,8 @@ class MixedTrainer(BaseTrainer):
         return inputs, targets
     
     def _forward(self, inputs, targets):
-        if not isinstance(self.criterion, MixedLoss):
-            raise NameError
-        return self.criterion(self.model(*inputs), targets)
+        outputs = self.model(*inputs)
+        return self.criterion(outputs, targets)
 
     def train(self, epoch, data_loader, optimizer, print_freq=1):
         self.model.train()
@@ -355,10 +354,13 @@ class MixedTrainer(BaseTrainer):
             #print('len(data_loader):', len(data_loader))
             inputs, targets = self._parse_data(inputs)
             loss = self._forward(inputs, targets)
+            #losses.update(loss.data.item(), targets.size(0))
             losses.update(loss.data.item(), targets.size(0))
+            
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+           
             batch_time.update(time.time() - end)
             end = time.time()
             if (i + 1) % print_freq == 0:

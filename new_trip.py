@@ -13,11 +13,11 @@ from tensorboardX import SummaryWriter
 from reid import datasets
 from reid import models
 from reid.dist_metric import DistanceMetric
-from reid.trainers import MixedTrainer
+from reid.trainers import MixedTrainer, Trainer
 from reid.evaluators import Evaluator
-from reid.loss import MixedLoss
+from reid.loss import MixedLoss, TripletLoss
 from reid.utils.data import transforms as T
-from reid.utils.data.sampler import RandomTripPairSampler
+from reid.utils.data.sampler import RandomTripPairSampler, RandomIdentitySampler
 from reid.utils.data.preprocessor import Preprocessor
 from reid.utils.logging import Logger
 from reid.utils.serialization import load_checkpoint, save_checkpoint
@@ -52,7 +52,7 @@ def get_data(name, split_id, data_dir, height, width, batch_size, workers,
         Preprocessor(dataset.train, root=osp.join(dataset.images_dir,dataset.train_path),
                      transform=train_transformer),
         batch_size=batch_size, num_workers=workers,
-        sampler = RandomTripPairSampler(dataset.train, num_instances = num_instances, repeat_times = repeat_times),
+        sampler = RandomIdentitySampler(dataset.train, num_instances = num_instances),
         pin_memory=True, drop_last=True)
 
     query_loader = DataLoader(
@@ -102,8 +102,8 @@ def main(args):
     print('args.trip_weight', args.trip_weight)
     print('args.class_weight', args.class_weight)
     print('before creation')
-    model = models.create(args.arch, num_features=args.features,
-                          dropout=args.dropout, num_classes=num_classes,feat_save=feature_save)
+    model = models.create(args.arch, num_features = 1024,
+                          dropout = args.dropout, num_classes = args.trips,feat_save = False)
     print('after creation')
 
     # Load from checkpoint
@@ -133,13 +133,16 @@ def main(args):
 
     # Criterion
     # print('Criterion')
+    """
     criterion = MixedLoss(margin = args.margin,
                         class_weight = args.class_weight,
                         trip_weight = args.trip_weight,
-                        num_instances = args.num_instances)
-
+                        num_instances = args.num_instances).cuda()
+    """
+    criterion = TripletLoss(margin = args.margin).cuda()
     # Optimizer
     # print('Optimizer')
+    
     if hasattr(model.module, 'base'):
         base_param_ids = set(map(id, model.module.base.parameters()))
         new_params = [p for p in model.parameters() if
@@ -149,7 +152,9 @@ def main(args):
             {'params': new_params, 'lr_mult': 1.0}]
     else:
         param_groups = model.parameters()
-    
+   
+    #print(model.module.base.parameters)
+
     #replaced by Adam for triplet
     """
     optimizer = torch.optim.SGD(param_groups, lr=args.lr,
@@ -165,8 +170,8 @@ def main(args):
 
     # Trainer
     # print('Trainer')
-    trainer = MixedTrainer(model, criterion)
-
+    #trainer = MixedTrainer(model, criterion)
+    trainer = Trainer(model, criterion)
     # Schedule learning rate
    
     """
@@ -187,8 +192,6 @@ def main(args):
     # Start training
     print('Start training')
     for epoch in range(start_epoch, args.epochs):
-        #initial learning rate 0.001
-        #decay to 0.0001 after 40 epochs
         
         adjust_lr(epoch)
            
@@ -200,7 +203,6 @@ def main(args):
         """
         
         trainer.train(epoch, train_loader, optimizer)        
-        is_best = True
 
         
         if epoch < args.start_save:
@@ -237,7 +239,7 @@ def main(args):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Softmax loss classification")
+    parser = argparse.ArgumentParser(description="Mixed loss classification")
     # data
     parser.add_argument('-d', '--dataset', type=str, default='cuhk03')
     parser.add_argument('-b', '--batch-size', type=int, default=256)
@@ -255,7 +257,8 @@ if __name__ == '__main__':
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())
-    parser.add_argument('--features', type=int, default=128)
+    parser.add_argument('--features', type=int, default=512)
+    parser.add_argument('--trips', type=int, default=128)
     parser.add_argument('--dropout', type=float, default=0.5)
     # optimizer
     parser.add_argument('--lr', type=float, default=0.0002,
@@ -272,8 +275,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--print-freq', type=int, default=1)
     #newly added arguments
-    parser.add_argument('--margin', type=float, default=2.0)
-    parser.add_argument('--trip_weight', type=float, default=0.5)
+    parser.add_argument('--margin', type=float, default=0.5)
+    parser.add_argument('--trip_weight', type=float, default=1.0)
     parser.add_argument('--class_weight', type=float, default=1.0)
     parser.add_argument('--num_instances', type=int, default=1)
     parser.add_argument('--repeat', type=int, default=1)
