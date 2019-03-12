@@ -19,16 +19,14 @@ class ResNet(nn.Module):
         152: torchvision.models.resnet152,
     }
 
-    def __init__(self, depth, pretrained=True, cut_at_pooling=False,
-                 num_features=0, norm=False, dropout=0, num_classes=0, num_trips=0, feat_save=False):
+    def __init__(self, depth, pretrained = True, cut_at_pooling = False,
+                 num_features = 0, norm = False, dropout = 0, num_classes = 0, num_trips = 0):
         print('ResNet init')
         super(ResNet, self).__init__()
 
         self.depth = depth
         self.pretrained = pretrained
         self.cut_at_pooling = cut_at_pooling
-        self.feat_save = feat_save
-        self.num_trips = num_trips
 
         # Construct base (pretrained) resnet
         if depth not in ResNet.__factory:
@@ -41,6 +39,7 @@ class ResNet(nn.Module):
             self.dropout = dropout
             self.has_embedding = num_features > 0
             self.num_classes = num_classes
+            self.num_trips = num_trips
 
             out_planes = self.base.fc.in_features
 
@@ -69,7 +68,7 @@ class ResNet(nn.Module):
         if not self.pretrained:
             self.reset_params()
 
-    def forward(self, x):
+    def forward(self, x, feat_save = False):
         #print('forward?')
         for name, module in self.base._modules.items():
             if name == 'avgpool':
@@ -95,10 +94,17 @@ class ResNet(nn.Module):
             x = self.drop(x)
         if self.num_trips > 0:
             trip = self.triplet(x)
+            #print(trip)
         if self.num_classes > 0:
             x = self.classifier(x)
-        #print(self.feat_save)
-        return x, feat, trip if self.feat_save else x
+            #print(x)
+        if feat_save:
+            if self.num_trips > 0:
+                return x, feat, trip
+            else:
+                return x, feat
+        else:
+            return x
 
     def reset_params(self):
         for m in self.modules():

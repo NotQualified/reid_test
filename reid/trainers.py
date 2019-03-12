@@ -92,9 +92,18 @@ class Trainer(BaseTrainer):
         return inputs, targets
 
     def _forward(self, inputs, targets):
-        outputs = self.model(*inputs)
+        outputs = self.model(*inputs, True)
         if isinstance(outputs, tuple):
+            # now is using class layer
+            #o1, o2, o3 = outputs
+            #print('outputs',outputs)
+            #print('outputs1',outputs[0].shape)
+            #print('output2',outputs[1].shape)
+            #print('output3',outputs[2].shape)
+            #print(o1.size(), o2.size(), o3.size())
             outputs = outputs[0]
+            #print('outputs',outputs.shape)
+            #print(outputs.size())
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
             loss = self.criterion(outputs, targets)
             prec, = accuracy(outputs.data, targets.data)
@@ -107,6 +116,7 @@ class Trainer(BaseTrainer):
             #print('output.size()', outputs.size())
             #print('target.size()', targets.size())
             #print(targets)
+            #print(outputs)
             loss, prec = self.criterion(outputs, targets)
         else:
             raise ValueError("Unsupported loss:", self.criterion)

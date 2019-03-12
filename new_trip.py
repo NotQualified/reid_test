@@ -103,7 +103,7 @@ def main(args):
     print('args.class_weight', args.class_weight)
     print('before creation')
     model = models.create(args.arch, num_features = 1024,
-                          dropout = args.dropout, num_classes = args.trips,feat_save = False)
+                          dropout = args.dropout, num_classes = args.trips, feat_save = False)
     print('after creation')
 
     # Load from checkpoint

@@ -13,7 +13,8 @@ def extract_cnn_feature(model, inputs, modules=None):
     if modules is None:
         outputs = model(inputs)
         if isinstance(outputs, tuple):
-            outputs = outputs[2]
+            #now is using classifier
+            outputs = outputs[0]
             #print(outputs.size())
         outputs = outputs.data.cpu()
         return outputs
