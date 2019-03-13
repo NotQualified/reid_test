@@ -1,11 +1,8 @@
 from __future__ import absolute_import
 from collections import defaultdict
-
 import numpy as np
 from sklearn.metrics import average_precision_score
-
 from ..utils import to_numpy
-
 
 def _unique_sample(ids_dict, num):
     mask = np.zeros(num, dtype=np.bool)
@@ -13,7 +10,6 @@ def _unique_sample(ids_dict, num):
         i = np.random.choice(indices)
         mask[i] = True
     return mask
-
 
 def cmc(distmat, query_ids=None, gallery_ids=None,
         query_cams=None, gallery_cams=None, topk=100,
@@ -77,8 +73,7 @@ def cmc(distmat, query_ids=None, gallery_ids=None,
     if num_valid_queries == 0:
         raise RuntimeError("No valid query")
     return ret.cumsum() / num_valid_queries
-
-
+    
 def mean_ap(distmat, query_ids=None, gallery_ids=None,
             query_cams=None, gallery_cams=None):
     distmat = to_numpy(distmat)
