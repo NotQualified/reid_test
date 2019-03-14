@@ -94,8 +94,8 @@ def main(args):
     # Create model
     # Hacking here to let the classifier be the last feature embedding layer
     # Net structure: avgpool -> FC(1024) -> FC(args.features)
-    model = models.create(args.arch, num_features = 1024, num_trips = args.trips, 
-                          dropout = args.dropout, num_classes = args.features)
+    model = models.create(args.arch, num_features = args.features, num_trips = args.trips, 
+                          dropout = args.dropout, num_classes = num_classes)
 
     # Load from checkpoint
     start_epoch = best_top1 = 0
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     # model
     parser.add_argument('-a', '--arch', type=str, default='resnet50',
                         choices=models.names())
-    parser.add_argument('--features', type=int, default=128)
+    parser.add_argument('--features', type=int, default=1024)
     parser.add_argument('--trips', type=int, default=128)
     parser.add_argument('--dropout', type=float, default=0)
     # loss
