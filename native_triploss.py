@@ -22,7 +22,7 @@ from reid.utils.serialization import load_checkpoint, save_checkpoint
 
 
 def get_data(name, split_id, data_dir, height, width, batch_size, num_instances,
-             workers, combine_trainval):
+             workers, combine_trainval, repeat):
     root = osp.join(data_dir, name)
 
     dataset = datasets.create(name, root)
@@ -51,7 +51,7 @@ def get_data(name, split_id, data_dir, height, width, batch_size, num_instances,
         Preprocessor(dataset.train, root=osp.join(dataset.images_dir, dataset.train_path),
                      transform=train_transformer),
         batch_size=batch_size, num_workers=workers,
-        sampler=RandomTripPairSampler(dataset.train, num_instances, repeat_times = 1),
+        sampler=RandomTripPairSampler(dataset.train, num_instances, repeat_times = repeat),
         pin_memory=True, drop_last=True)
 
     val_loader = DataLoader(
@@ -88,7 +88,7 @@ def main(args):
     dataset, num_classes, train_loader, query_loader, gallery_loader = \
         get_data(args.dataset, args.split, args.data_dir, args.height,
                  args.width, args.batch_size, args.num_instances, args.workers,
-                 args.combine_trainval)
+                 args.combine_trainval, repeat = args.repeat)
 
     # Create model
     # Hacking here to let the classifier be the last feature embedding layer
@@ -196,6 +196,7 @@ if __name__ == '__main__':
     # loss
     parser.add_argument('--margin', type=float, default=0.5,
                         help="margin of the triplet loss, default: 0.5")
+    parser.add_argument('--repeat', type=int, default=1)
     # optimizer
     parser.add_argument('--lr', type=float, default=0.0002,
                         help="learning rate of all parameters")
