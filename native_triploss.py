@@ -8,7 +8,6 @@ import torch
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
-
 from reid import datasets
 from reid import models
 from reid.dist_metric import DistanceMetric
