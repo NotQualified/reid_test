@@ -16,7 +16,7 @@ class MixedLoss(nn.Module):
     def forward(self, inputs, targets):
         #inputs: feature map in (batch_size * num_features) shape, class_result in (batch_size * num_classes) shape
         #targets: target label in (batch_size) shape
-        features, _, _ = inputs
+        _, _, features = inputs
         #print(classes.size(), features.size())
         bs = features.size(0)
         r = [True if (i // (self.num_instances / 2)) % 2 == 0 else False for i in range(bs)]
@@ -32,8 +32,8 @@ class MixedLoss(nn.Module):
         #distmat = temp + temp.t() - 2 * torch.mm(features, features.t()) 
         distmat = features.pow(2).sum(1, keepdim = True).expand(-1, bs)
         distmat = distmat + distmat.t()
-        distmat = distmat.clamp(min = 1e-12).sqrt()
         distmat = distmat - 2 * torch.mm(features, features.t())
+        distmat = distmat.clamp(min = 1e-12).sqrt()
         valid = targets.unsqueeze(0).t().expand(-1, bs) == targets.unsqueeze(0).expand(bs, -1)
         nvalid = ~valid
         #print(valid)
@@ -49,8 +49,8 @@ class MixedLoss(nn.Module):
             an = torch.cat((an, dist_an), dim = 0)
         #y = ap.clone().fill_(1).cuda()
         #print(classes.size(), targets.size())
-        if F.relu(ap + self.margin - an).mean() - self.margin <= 0.001:
-            print(ap, an)
+        #if F.relu(ap + self.margin - an).mean() - self.margin <= 0.001:
+        #    print(ap, an)
 
         y = dist_an.data.new()
         y.resize_as_(dist_an.data)

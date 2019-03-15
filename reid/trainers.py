@@ -48,19 +48,6 @@ class BaseTrainer(object):
 
             batch_time.update(time.time() - end)
             end = time.time()
-            """
-            if (i + 1) % print_freq == 0:
-                print('Epoch: [{}][{}/{}]\t'
-                      'Time {:.3f} ({:.3f})\t'
-                      'Data {:.3f} ({:.3f})\t'
-                      'Loss {:.3f} ({:.3f})\t'
-                      'Prec {:.2%} ({:.2%})\t'
-                      .format(epoch, i + 1, len(data_loader),
-                              batch_time.val, batch_time.avg,
-                              data_time.val, data_time.avg,
-                              losses.val, losses.avg,
-                              precisions.val, precisions.avg))
-            """
             if (i + 1) % print_freq == 0:
                 print('Epoch: [{}][{}/{}]\t'
                     'Time {:.3f} ({:.3f})\t'
@@ -70,10 +57,6 @@ class BaseTrainer(object):
                         batch_time.val, batch_time.avg,
                         data_time.val, data_time.avg,
                         losses.val, losses.avg))
-            """
-            if i + 1 >= len(data_loader):
-                break
-	        """
 
     def _parse_data(self, inputs):
         raise NotImplementedError
@@ -87,23 +70,13 @@ class Trainer(BaseTrainer):
         imgs, fnames, pids, _ = inputs
         inputs = [Variable(imgs)]
         targets = Variable(pids.cuda())
-        #print('fnames : ', fnames)
-        #print('len:', len(fnames))
         return inputs, targets
 
     def _forward(self, inputs, targets):
         outputs = self.model(*inputs, True)
-        if isinstance(outputs, tuple):
-            # now is using class layer
-            #o1, o2, o3 = outputs
-            #print('outputs',outputs)
-            #print('outputs1',outputs[0].shape)
-            #print('output2',outputs[1].shape)
-            #print('output3',outputs[2].shape)
-            #print(o1.size(), o2.size(), o3.size())
+        if isinstance(outputs, tuple) and not isinstance(self.criterion, MixedLoss):
+            # now is using trip layer
             outputs = outputs[2]
-            #print('outputs',outputs.shape)
-            #print(outputs.size())
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
             loss = self.criterion(outputs, targets)
             prec, = accuracy(outputs.data, targets.data)
@@ -113,11 +86,10 @@ class Trainer(BaseTrainer):
             prec, = accuracy(outputs.data, targets.data)
             prec = prec[0]
         elif isinstance(self.criterion, TripletLoss):
-            #print('output.size()', outputs.size())
-            #print('target.size()', targets.size())
-            #print(targets)
-            #print(outputs)
             loss, prec = self.criterion(outputs, targets)
+        elif isinstance(self.criterion, MixedLoss):
+            loss = self.criterion(outputs, targets)
+            prec = 0
         else:
             raise ValueError("Unsupported loss:", self.criterion)
         return loss, prec
