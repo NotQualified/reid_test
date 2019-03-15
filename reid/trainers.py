@@ -101,7 +101,7 @@ class Trainer(BaseTrainer):
             #print('output2',outputs[1].shape)
             #print('output3',outputs[2].shape)
             #print(o1.size(), o2.size(), o3.size())
-            outputs = outputs[0]
+            outputs = outputs[2]
             #print('outputs',outputs.shape)
             #print(outputs.size())
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
@@ -168,10 +168,10 @@ class TripTrainer(BaseTrainer):
             if (i + 1) % print_freq == 0:
                 if self.writer:
                     self.writer.add_scalars('Train', 
-											{'trip_loss': trip_loss.item(), 
-											'class_loss': class_loss.item(), 
-											'total_loss': loss.item()}, 
-											epoch * len(data_loader) + i)
+                                            {'trip_loss': trip_loss.item(), 
+                                            'class_loss': class_loss.item(), 
+                                            'total_loss': loss.item()}, 
+                                            epoch * len(data_loader) + i)
                 print('Epoch: [{}][{}/{}]\t'
                     'Time {:.3f} ({:.3f})\t'
                     'Data {:.3f} ({:.3f})\t'
