@@ -1,1 +1,0 @@
-CUDA_VISIBLE_DEVICES=2,3 python native_triploss.py -d market_gen -a resnet50 -b 256 -j 0 --epochs 150 --logs-dir logs/trip_market_test1 --data-dir /home/hawkeyenew2/hht/exp/rep/data --num-instances 2 --margin 0.1
