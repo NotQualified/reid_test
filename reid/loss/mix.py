@@ -32,7 +32,7 @@ class MixedLoss(nn.Module):
         #distmat = temp + temp.t() - 2 * torch.mm(features, features.t()) 
         distmat = torch.pow(features, 2).sum(1, keepdim = True).expand(-1, bs)
         distmat = distmat + distmat.t()
-        distmat = distmat - 2 * torch.mm(features, features.t())
+        distmat = distmat.addmm_(1, -2, features, features.t())
         distmat = distmat.clamp(min = 1e-12).sqrt()
         valid = targets.unsqueeze(0).t().expand(-1, bs) == targets.unsqueeze(0).expand(bs, -1)
         nvalid = ~valid
