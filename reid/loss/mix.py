@@ -30,7 +30,7 @@ class MixedLoss(nn.Module):
         #print(dist.size(), dist)
         #print(temp.size())
         #distmat = temp + temp.t() - 2 * torch.mm(features, features.t()) 
-        distmat = features.pow(2).sum(1, keepdim = True).expand(-1, bs)
+        distmat = torch.pow(features, 2).sum(1, keepdim = True).expand(-1, bs)
         distmat = distmat + distmat.t()
         distmat = distmat - 2 * torch.mm(features, features.t())
         distmat = distmat.clamp(min = 1e-12).sqrt()

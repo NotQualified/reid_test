@@ -121,10 +121,7 @@ class Evaluator(object):
     def __init__(self, model, writer = None):
         super(Evaluator, self).__init__()
         self.model = model
-        if writer:
-            self.writer = writer
-        else:
-            self.writer = None
+        self.writer = writer
 
     def evaluate(self, query_loader, gallery_loader, query, gallery, record=None):
         print('extracting query features\n')

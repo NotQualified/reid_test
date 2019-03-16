@@ -19,8 +19,7 @@ class BaseTrainer(object):
         super(BaseTrainer, self).__init__()
         self.model = model
         self.criterion = criterion
-        if writer:
-            self.writer = writer
+        self.writer = writer
 
     def train(self, epoch, data_loader, optimizer, print_freq=1):
         self.model.train()
@@ -51,9 +50,10 @@ class BaseTrainer(object):
             batch_time.update(time.time() - end)
             end = time.time()
             if (i + 1) % print_freq == 0:
-                self.writer.add_scalars('Train', \
-                                        {'trip_loss': loss.item()},\
-                                        epoch * len(data_loader) + i)
+                if self.writer:
+                    self.writer.add_scalars('Train', \
+                                            {'trip_loss': loss.item()},\
+                                            epoch * len(data_loader) + i)
                 print('Epoch: [{}][{}/{}]\t'
                     'Time {:.3f} ({:.3f})\t'
                     'Data {:.3f} ({:.3f})\t'
