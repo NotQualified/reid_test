@@ -8,6 +8,7 @@ import torch
 from torch import nn
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
 from reid import datasets
 from reid import models
 from reid.dist_metric import DistanceMetric
@@ -73,6 +74,11 @@ def main(args):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     cudnn.benchmark = True
+    
+    if args.record_dir:
+        writer = SummaryWriter(comment = "New2 Test", log_dir = args.record_dir)
+    else:
+        writer = None
 
     # Redirect print to both console and log file
     if not args.evaluate:
@@ -111,7 +117,7 @@ def main(args):
     metric = DistanceMetric(algorithm=args.dist_metric)
 
     # Evaluator
-    evaluator = Evaluator(model)
+    evaluator = Evaluator(model, writer)
     if args.evaluate:
         #metric.train(model, train_loader)
         #print("Validation:")
@@ -131,7 +137,7 @@ def main(args):
                                  weight_decay=args.weight_decay)
 
     # Trainer
-    trainer = Trainer(model, criterion)
+    trainer = Trainer(model, criterion, writer = writer)
 
     # Schedule learning rate
     def adjust_lr(epoch):
@@ -147,7 +153,8 @@ def main(args):
         if epoch < args.start_save:
             continue
         top1 = evaluator.evaluate(query_loader, gallery_loader,
-                                dataset.query, dataset.gallery)
+                                dataset.query, dataset.gallery,
+                                (epoch + 1, len(train_loader)))
 
         is_best = top1 > best_top1
         best_top1 = max(top1, best_top1)
@@ -224,4 +231,5 @@ if __name__ == '__main__':
                         default=osp.join(working_dir, 'data'))
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
+    parser.add_argument('--record-dir',type=str, metavar='PATH', default='')
     main(parser.parse_args())

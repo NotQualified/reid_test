@@ -118,7 +118,7 @@ def evaluate_all(distmat, query=None, gallery=None,
 
 
 class Evaluator(object):
-    def __init__(self, model, writer = False):
+    def __init__(self, model, writer = None):
         super(Evaluator, self).__init__()
         self.model = model
         if writer:
