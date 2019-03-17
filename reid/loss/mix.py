@@ -23,13 +23,6 @@ class MixedLoss(nn.Module):
         g = [False if (i // (self.num_instances / 2)) % 2 == 0 else True for i in range(bs)]
         r = torch.ByteTensor(r).cuda()
         g = torch.ByteTensor(g).cuda()
-        #print(r)
-        #print(g)
-        #dist = features.pow(2).sum(1)
-        #temp = features.pow(2).sum(1, keepdim=True).expand(-1, bs)
-        #print(dist.size(), dist)
-        #print(temp.size())
-        #distmat = temp + temp.t() - 2 * torch.mm(features, features.t()) 
         distmat = torch.pow(features, 2).sum(1, keepdim = True).expand(-1, bs)
         distmat = distmat + distmat.t()
         distmat = distmat.addmm_(1, -2, features, features.t())
@@ -38,22 +31,18 @@ class MixedLoss(nn.Module):
         nvalid = ~valid
         #print(valid)
         #print(nvalid)
-        ap = torch.Tensor().cuda()
-        an = torch.Tensor().cuda()
+        ap, an = [], []
         for i in range(bs):
             #select hardest positive
-            dist_ap = max(distmat[i][valid[i]]).unsqueeze(0)
+            ap.append(distmat[i][valid[i]].max().unsqueeze(0))
             #select easist negative
-            dist_an = min(distmat[i][nvalid[i]]).unsqueeze(0)
-            ap = torch.cat((ap, dist_ap), dim = 0)
-            an = torch.cat((an, dist_an), dim = 0)
-        #y = ap.clone().fill_(1).cuda()
-        #print(classes.size(), targets.size())
-        #if F.relu(ap + self.margin - an).mean() - self.margin <= 0.001:
-        #    print(ap, an)
-
-        y = dist_an.data.new()
-        y.resize_as_(dist_an.data)
+            an.append(distmat[i][nvalid[i]].min().unsqueeze(0))
+        ap = torch.cat(ap)
+        an = torch.cat(an)
+        #print(ap.size())
+        #print(an.size())
+        y = an.data.new()
+        y.resize_as_(an.data)
         y.fill_(1)
         y = Variable(y)
         return self.trip_weight * self.trip_loss(an, ap, y)
