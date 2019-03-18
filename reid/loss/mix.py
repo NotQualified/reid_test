@@ -27,7 +27,9 @@ class MixedLoss(nn.Module):
         distmat = distmat + distmat.t()
         distmat = distmat.addmm_(1, -2, features, features.t())
         distmat = distmat.clamp(min = 1e-12).sqrt()
-        valid = targets.unsqueeze(0).t().expand(-1, bs) == targets.unsqueeze(0).expand(bs, -1)
+        valid = targets.unsqueeze(0).t().expand(-1, bs).eq(targets.unsqueeze(0).expand(bs, -1))
+    
+    
         nvalid = ~valid
         #print(valid)
         #print(nvalid)
