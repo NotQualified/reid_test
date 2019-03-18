@@ -79,7 +79,7 @@ class Trainer(BaseTrainer):
 
     def _forward(self, inputs, targets):
         outputs = self.model(*inputs, True)
-        if isinstance(outputs, tuple) and not isinstance(self.criterion, MixedLoss):
+        if isinstance(outputs, tuple):
             # now is using trip layer
             outputs = outputs[2]
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):

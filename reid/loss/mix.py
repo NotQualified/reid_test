@@ -16,20 +16,18 @@ class MixedLoss(nn.Module):
     def forward(self, inputs, targets):
         #inputs: feature map in (batch_size * num_features) shape, class_result in (batch_size * num_classes) shape
         #targets: target label in (batch_size) shape
-        _, _, features = inputs
+        features = inputs
         #print(classes.size(), features.size())
         bs = features.size(0)
         r = [True if (i // (self.num_instances / 2)) % 2 == 0 else False for i in range(bs)]
         g = [False if (i // (self.num_instances / 2)) % 2 == 0 else True for i in range(bs)]
         r = torch.ByteTensor(r).cuda()
         g = torch.ByteTensor(g).cuda()
-        distmat = torch.pow(features, 2).sum(1, keepdim = True).expand(-1, bs)
+        distmat = torch.pow(features, 2).sum(1, keepdim = True).expand(bs, bs)
         distmat = distmat + distmat.t()
         distmat = distmat.addmm_(1, -2, features, features.t())
         distmat = distmat.clamp(min = 1e-12).sqrt()
-        valid = targets.unsqueeze(0).t().expand(-1, bs).eq(targets.unsqueeze(0).expand(bs, -1))
-    
-    
+        valid = targets.expand(bs, bs).eq(targets.expand(bs, bs).t()) 
         nvalid = ~valid
         #print(valid)
         #print(nvalid)
