@@ -16,7 +16,8 @@ class MixedLoss(nn.Module):
     def forward(self, inputs, targets):
         #inputs: feature map in (batch_size * num_features) shape, class_result in (batch_size * num_classes) shape
         #targets: target label in (batch_size) shape
-        features = inputs
+        classes = inputs[0]
+        features = inputs[1] if len(inputs) == 2 else inputs[2]
         #print(classes.size(), features.size())
         bs = features.size(0)
         r = [True if (i // (self.num_instances / 2)) % 2 == 0 else False for i in range(bs)]
@@ -45,5 +46,5 @@ class MixedLoss(nn.Module):
         y.resize_as_(an.data)
         y.fill_(1)
         y = Variable(y)
-        return self.trip_weight * self.trip_loss(an, ap, y)
-           # self.class_weight * self.class_loss(classes, targets) 
+        return self.trip_weight * self.trip_loss(an, ap, y), \
+        self.class_weight * self.class_loss(classes, targets) 

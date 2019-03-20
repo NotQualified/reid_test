@@ -68,7 +68,7 @@ class ResNet(nn.Module):
         if not self.pretrained:
             self.reset_params()
 
-    def forward(self, x, feat_save = False):
+    def forward(self, x, feat_save = False, trip_save = False):
         #print('forward?')
         for name, module in self.base._modules.items():
             if name == 'avgpool':
@@ -99,12 +99,15 @@ class ResNet(nn.Module):
             x = self.classifier(x)
             #print(x)
         if feat_save:
-            if self.num_trips > 0:
+            if self.num_trips > 0 and trip_save:
                 return x, feat, trip
             else:
                 return x, feat
         else:
-            return x
+            if self.num_trips > 0 and trip_save:
+                return x, trip
+            else:
+                return x
 
     def reset_params(self):
         for m in self.modules():

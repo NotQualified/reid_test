@@ -11,10 +11,10 @@ def extract_cnn_feature(model, inputs, modules=None):
     inputs = to_torch(inputs)
     inputs = Variable(inputs, volatile=True)
     if modules is None:
-        outputs = model(inputs, True)
+        outputs = model(inputs, feat_save = False, trip_save = True)
         if isinstance(outputs, tuple):
             #now is using triplets
-            outputs = outputs[2]
+            outputs = outputs[1] if len(outputs) == 2 else outputs[2]
             #print(outputs.size())
         outputs = outputs.data.cpu()
         return outputs

@@ -36,12 +36,11 @@ class BaseTrainer(object):
             #print('inputs.size():', inputs[0].size())
             inputs, targets = self._parse_data(inputs)
             loss, prec1 = self._forward(inputs, targets)
-        
-            if isinstance(targets, tuple):
-                targets = torch.cat((targets[0], targets[1]))
-
+       
+            if isinstance(loss, tuple):
+                trip_loss, class_loss = loss
+                loss = trip_loss + class_loss
             losses.update(loss.data.item(), targets.size(0))
-            precisions.update(prec1, targets.size(0))
 
             optimizer.zero_grad()
             loss.backward()
@@ -78,8 +77,8 @@ class Trainer(BaseTrainer):
         return inputs, targets
 
     def _forward(self, inputs, targets):
-        outputs = self.model(*inputs, True)
-        if isinstance(outputs, tuple):
+        outputs = self.model(*inputs, feat_save = True, trip_save = True)
+        if isinstance(outputs, tuple) and not isinstance(self.criterion, MixedLoss):
             # now is using trip layer
             outputs = outputs[2]
         if isinstance(self.criterion, torch.nn.CrossEntropyLoss):
