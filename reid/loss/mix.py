@@ -18,6 +18,7 @@ class MixedLoss(nn.Module):
         #targets: target label in (batch_size) shape
         classes = inputs[0]
         features = inputs[1] if len(inputs) == 2 else inputs[2]
+        #features = inputs[2]
         #print(classes.size(), features.size())
         bs = features.size(0)
         r = [True if (i // (self.num_instances / 2)) % 2 == 0 else False for i in range(bs)]

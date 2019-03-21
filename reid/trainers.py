@@ -36,10 +36,12 @@ class BaseTrainer(object):
             #print('inputs.size():', inputs[0].size())
             inputs, targets = self._parse_data(inputs)
             loss, prec1 = self._forward(inputs, targets)
-       
+            
+            comb_loss = False
             if isinstance(loss, tuple):
                 trip_loss, class_loss = loss
                 loss = trip_loss + class_loss
+                comb_loss = True
             losses.update(loss.data.item(), targets.size(0))
 
             optimizer.zero_grad()
@@ -49,9 +51,15 @@ class BaseTrainer(object):
             batch_time.update(time.time() - end)
             end = time.time()
             if (i + 1) % print_freq == 0:
-                if self.writer:
+                if self.writer and not comb_loss:
                     self.writer.add_scalars('Train', \
                                             {'trip_loss': loss.item()},\
+                                            epoch * len(data_loader) + i)
+                if self.writer and comb_loss:
+                    self.writer.add_scalars('Train', \
+                                            {'trip_loss': trip_loss.item(),\
+                                            'classfication_loss': class_loss.item(),\
+                                            'totol_loss': loss.item()},\
                                             epoch * len(data_loader) + i)
                 print('Epoch: [{}][{}/{}]\t'
                     'Time {:.3f} ({:.3f})\t'
