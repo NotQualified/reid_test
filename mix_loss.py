@@ -132,8 +132,18 @@ def main(args):
                         margin = args.margin,
                         num_instances = args.num_instances).cuda()
 
+    if hasattr(model.module, 'base'):
+        base_param_ids = set(map(id, model.module.base.parameters()))
+        new_params = [p for p in model.parameters() if
+                    id(p) not in base_param_ids]
+        param_groups = [
+                {'params': model.module.base.parameters(), 'lr_mult': 0.1},
+                {'params': new_params, 'lr_mult': 1.0}]
+    else:
+        param_groups = model.parameters()
+
     # Optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
+    optimizer = torch.optim.Adam(param_groups, lr=args.lr,
                                  weight_decay=args.weight_decay)
 
     # Trainer
@@ -141,10 +151,15 @@ def main(args):
 
     # Schedule learning rate
     def adjust_lr(epoch):
-        lr = args.lr if epoch <= 100 else \
-            args.lr * (0.001 ** ((epoch - 100) / 50.0))
+        lr = args.lr if epoch <= args.decay_epoch else \
+            args.lr * (0.001 ** ((epoch - args.decay_epoch) / 100.0))
         for g in optimizer.param_groups:
             g['lr'] = lr * g.get('lr_mult', 1)
+        print('now learning rate:', lr)
+        if writer:
+            writer.add_scalars('learning rate',\
+                    {'learning_rate': lr},
+                    epoch + 1)
 
     # Start training
     for epoch in range(start_epoch, args.epochs):
@@ -212,6 +227,8 @@ if __name__ == '__main__':
     # optimizer
     parser.add_argument('--lr', type=float, default=0.0002,
                         help="learning rate of all parameters")
+    parser.add_argument('--decay_epoch', type=int, default=100,
+                        help="decay epoch")
     parser.add_argument('--weight-decay', type=float, default=5e-4)
     # training configs
     parser.add_argument('--resume', type=str, default='', metavar='PATH')
