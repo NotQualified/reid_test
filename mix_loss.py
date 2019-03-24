@@ -1,5 +1,6 @@
 from __future__ import print_function, absolute_import
 import argparse
+import os 
 import os.path as osp
 
 import numpy as np
@@ -75,6 +76,8 @@ def main(args):
     torch.manual_seed(args.seed)
     cudnn.benchmark = True
     
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.devices
+
     if args.record_dir:
         writer = SummaryWriter(comment = "New2 Test", log_dir = args.record_dir)
     else:
@@ -163,6 +166,7 @@ def main(args):
 
     # Start training
     for epoch in range(start_epoch, args.epochs):
+        print(torch.cuda.device_count())
         adjust_lr(epoch)
         trainer.train(epoch, train_loader, optimizer)
         if epoch < args.start_save:
@@ -249,4 +253,5 @@ if __name__ == '__main__':
     parser.add_argument('--logs-dir', type=str, metavar='PATH',
                         default=osp.join(working_dir, 'logs'))
     parser.add_argument('--record-dir',type=str, metavar='PATH', default='')
+    parser.add_argument('--devices', type=str, default='')
     main(parser.parse_args())
