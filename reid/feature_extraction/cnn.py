@@ -13,9 +13,9 @@ def extract_cnn_feature(model, inputs, modules=None):
     if modules is None:
         outputs = model(inputs, feat_save = True, trip_save = True)
         if isinstance(outputs, tuple):
-            #now is using triplets
+            #now is using features
             #outputs = outputs[1] if len(outputs) == 2 else outputs[2]
-            outputs = outputs[2]
+            outputs = outputs[1]
         outputs = outputs.data.cpu()
         return outputs
     # Register forward hook for each module
