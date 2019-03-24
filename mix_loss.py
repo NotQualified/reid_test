@@ -3,6 +3,7 @@ import argparse
 import os 
 import os.path as osp
 
+from basic.pt_utils.lr_adjust import warmup
 import numpy as np
 import sys
 import torch
@@ -146,13 +147,14 @@ def main(args):
         param_groups = model.parameters()
 
     # Optimizer
-    optimizer = torch.optim.Adam(param_groups, lr=args.lr,
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
                                  weight_decay=args.weight_decay)
 
     # Trainer
     trainer = Trainer(model, criterion, writer = writer)
 
     # Schedule learning rate
+    """
     def adjust_lr(epoch):
         lr = args.lr if epoch <= args.decay_epoch else \
             args.lr * (0.001 ** ((epoch - args.decay_epoch) / 100.0))
@@ -163,10 +165,20 @@ def main(args):
             writer.add_scalars('learning rate',\
                     {'learning_rate': lr},
                     epoch + 1)
+    """
+
+    def adjust_lr(epoch):
+        lr = warmup(epoch, args.lr)
+        for g in optimizer.param_groups:
+            g['lr'] = lr * g.get('lr_mult', 1)
+        print('now learning rate:', lr)
+        if writer:
+            writer.add_scalars('learning rate', \
+                    {'learning_rate': lr}, \
+                    epoch + 1)
 
     # Start training
     for epoch in range(start_epoch, args.epochs):
-        print(torch.cuda.device_count())
         adjust_lr(epoch)
         trainer.train(epoch, train_loader, optimizer)
         if epoch < args.start_save:
