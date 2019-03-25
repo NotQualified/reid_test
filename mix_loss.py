@@ -147,7 +147,7 @@ def main(args):
         param_groups = model.parameters()
 
     # Optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
+    optimizer = torch.optim.Adam(param_groups, lr=args.lr,
                                  weight_decay=args.weight_decay)
 
     # Trainer
