@@ -141,7 +141,7 @@ def main(args):
         new_params = [p for p in model.parameters() if
                     id(p) not in base_param_ids]
         param_groups = [
-                {'params': model.module.base.parameters(), 'lr_mult': 0.1},
+                {'params': model.module.base.parameters(), 'lr_mult': args.base_decay},
                 {'params': new_params, 'lr_mult': 1.0}]
     else:
         param_groups = model.parameters()
@@ -168,7 +168,7 @@ def main(args):
     """
 
     def adjust_lr(epoch):
-        lr = warmup(epoch, args.lr)
+        lr = warmup(epoch, args.lr, (10, 70, 120))
         for g in optimizer.param_groups:
             g['lr'] = lr * g.get('lr_mult', 1)
         print('now learning rate:', lr)
@@ -245,6 +245,8 @@ if __name__ == '__main__':
                         help="learning rate of all parameters")
     parser.add_argument('--decay_epoch', type=int, default=100,
                         help="decay epoch")
+    parser.add_argument('--base_decay', type=float, default=0.1,
+                        help='decay rate of base parameters in the model')
     parser.add_argument('--weight-decay', type=float, default=5e-4)
     # training configs
     parser.add_argument('--resume', type=str, default='', metavar='PATH')
