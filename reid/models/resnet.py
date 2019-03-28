@@ -84,8 +84,11 @@ class ResNet(nn.Module):
 
         if self.has_embedding:
             x = self.feat(x)
+            if self.num_trips == 0:
+                trip = x
+            feat = x
             x = self.feat_bn(x)
-        feat = F.normalize(x)
+        #feat = F.normalize(x)
         if self.norm:
             x = F.normalize(x)
         elif self.has_embedding:
@@ -99,12 +102,12 @@ class ResNet(nn.Module):
             x = self.classifier(x)
             #print(x)
         if feat_save:
-            if self.num_trips > 0 and trip_save:
+            if trip_save:
                 return x, feat, trip
             else:
                 return x, feat
         else:
-            if self.num_trips > 0 and trip_save:
+            if trip_save:
                 return x, trip
             else:
                 return x

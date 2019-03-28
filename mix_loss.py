@@ -166,7 +166,6 @@ def main(args):
                     {'learning_rate': lr},
                     epoch + 1)
     """
-
     def adjust_lr(epoch):
         lr = warmup(epoch, args.lr, (10, 70, 120))
         for g in optimizer.param_groups:
@@ -176,7 +175,7 @@ def main(args):
             writer.add_scalars('learning rate', \
                     {'learning_rate': lr}, \
                     epoch + 1)
-
+    
     # Start training
     for epoch in range(start_epoch, args.epochs):
         adjust_lr(epoch)
